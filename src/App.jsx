@@ -51,6 +51,10 @@ const theme = createTheme({
 });
 
 function App() {
+  // 刪除某一筆 pair
+  const handleDeletePair = (index) => {
+    setPairs(pairs => pairs.filter((_, i) => i !== index));
+  }
   const [videoUrl, setVideoUrl] = React.useState(null);
   const [markers, setMarkers] = useState([]);
   const [pairs, setPairs] = useState([]); // 每組擊球-落球
@@ -119,17 +123,29 @@ function App() {
               />
             </Button>
           </Box>
-          <Box sx={{ mb: 4 }}>
-            <VideoPlayer
-              videoUrl={videoUrl}
-              markers={markers}
-              setMarkers={handleSetMarkers}
-              onNewPair={handleNewPair}
-              showPair={showPair}
-              seekTime={seekTime}
-              onSeeked={handleSeeked}
-              onExitShowPair={() => setShowPair(null)}
-            />
+          <Box sx={{ mb: 2 }}>
+  {/* 狀態顯示區塊 */}
+  <Paper elevation={1} sx={{ mb: 2, p: 1.5, display: 'inline-block', borderRadius: 3 }}>
+    {showPair !== null ? (
+      <Typography variant="subtitle1" color="secondary">
+        檢視模式（第 {pairs.findIndex(p => p === showPair) + 1} 筆紀錄）
+      </Typography>
+    ) : (
+      <Typography variant="subtitle1" color="primary">
+        標記模式
+      </Typography>
+    )}
+  </Paper>
+  <VideoPlayer
+    videoUrl={videoUrl}
+    markers={markers}
+    setMarkers={handleSetMarkers}
+    onNewPair={handleNewPair}
+    showPair={showPair}
+    seekTime={seekTime}
+    onSeeked={handleSeeked}
+    onExitShowPair={() => setShowPair(null)}
+  />
           </Box>
           <Paper variant="outlined" sx={{ mb: 3, overflowX: 'auto' }}>
             <Table size="small">
@@ -146,21 +162,41 @@ function App() {
               <TableBody>
                 {(() => {
                   const speeds = calcSpeeds(pairs.flatMap(p => [p.hit, p.land]));
-                  return pairs.map((p, i) => (
-                    <TableRow
-                      key={i}
-                      hover
-                      sx={{ cursor: 'pointer' }}
-                      onClick={() => handleShowPair(p)}
-                    >
-                      <TableCell>{i + 1}</TableCell>
-                      <TableCell>{p.hit.x}, {p.hit.y}</TableCell>
-                      <TableCell>{p.hit.time.toFixed(2)}</TableCell>
-                      <TableCell>{p.land.x}, {p.land.y}</TableCell>
-                      <TableCell>{p.land.time.toFixed(2)}</TableCell>
-                      <TableCell>{speeds[i] ? speeds[i].speed : '-'}</TableCell>
-                    </TableRow>
-                  ));
+                  return pairs.map((p, i) => {
+  const isViewing = showPair !== null && showPair === p;
+  return (
+    <TableRow
+      key={i}
+      hover
+      sx={isViewing ? {
+        cursor: 'pointer',
+        backgroundColor: '#ede7f6', // 淡紫色
+      } : { cursor: 'pointer' }}
+      onClick={() => handleShowPair(p)}
+    >
+      <TableCell>{i + 1}</TableCell>
+      <TableCell>{p.hit.x}, {p.hit.y}</TableCell>
+      <TableCell>{p.hit.time.toFixed(2)}</TableCell>
+      <TableCell>{p.land.x}, {p.land.y}</TableCell>
+      <TableCell>{p.land.time.toFixed(2)}</TableCell>
+      <TableCell>{speeds[i] ? speeds[i].speed : '-'}</TableCell>
+      <TableCell>
+        <Button
+          variant="outlined"
+          color="error"
+          size="small"
+          sx={{ minWidth: 32, p: 0.5 }}
+          onClick={e => {
+            e.stopPropagation(); // 避免觸發 row 的 onClick
+            if (window.confirm('確定要刪除此筆紀錄嗎？')) {
+              handleDeletePair(i);
+            }
+          }}
+        >刪除</Button>
+      </TableCell>
+    </TableRow>
+  );
+});
                 })()}
               </TableBody>
             </Table>
