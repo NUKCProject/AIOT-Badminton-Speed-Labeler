@@ -2,8 +2,56 @@ import React, { useState } from 'react';
 import VideoPlayer from './components/VideoPlayer';
 import ExportCSVButton from './components/ExportCSVButton';
 import { calcSpeeds } from './utils/speedCalc';
+import {
+  ThemeProvider,
+  createTheme,
+  CssBaseline,
+  Container,
+  Paper,
+  Typography,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  Box,
+  Button
+} from '@mui/material';
+
+const theme = createTheme({
+  palette: {
+    mode: 'light',
+    primary: {
+      main: '#6750A4', // Material 3 primary
+    },
+    secondary: {
+      main: '#625B71',
+    },
+    background: {
+      default: '#f6f7fb',
+      paper: '#fff',
+    },
+  },
+  shape: {
+    borderRadius: 16,
+  },
+  typography: {
+    fontFamily: [
+      'Noto Sans TC',
+      'Inter',
+      'Arial',
+      'sans-serif',
+    ].join(','),
+    h1: {
+      fontWeight: 700,
+      fontSize: '2rem',
+      letterSpacing: '0.5px',
+    },
+  },
+});
 
 function App() {
+  const [videoUrl, setVideoUrl] = React.useState(null);
   const [markers, setMarkers] = useState([]);
   const [pairs, setPairs] = useState([]); // 每組擊球-落球
   const [showPair, setShowPair] = useState(null); // 目前要顯示的配對（for 表格點擊）
@@ -42,51 +90,87 @@ function App() {
   const handleSeeked = () => setSeekTime(null);
 
   return (
-    <div style={{ padding: 24 }}>
-      <h1>羽毛球球速標記工具</h1>
-      <VideoPlayer
-        markers={markers}
-        setMarkers={handleSetMarkers}
-        onNewPair={handleNewPair}
-        showPair={showPair}
-        seekTime={seekTime}
-        onSeeked={handleSeeked}
-        onExitShowPair={() => setShowPair(null)}
-      />
-      {/* 配對表格 */}
-      <table style={{ marginTop: 24, borderCollapse: 'collapse', background: '#fff' }}>
-        <thead>
-          <tr>
-            <th style={{ border: '1px solid #ccc', padding: 4 }}>#</th>
-            <th style={{ border: '1px solid #ccc', padding: 4 }}>擊球(x,y)</th>
-            <th style={{ border: '1px solid #ccc', padding: 4 }}>擊球時間(s)</th>
-            <th style={{ border: '1px solid #ccc', padding: 4 }}>落球(x,y)</th>
-            <th style={{ border: '1px solid #ccc', padding: 4 }}>落球時間(s)</th>
-            <th style={{ border: '1px solid #ccc', padding: 4 }}>球速(km/h)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {/* 需計算每組配對的球速 */}
-          {(() => {
-            // 引入 calcSpeeds 並計算每組球速
-            const speeds = calcSpeeds(pairs.flatMap(p => [p.hit, p.land]));
-            return pairs.map((p, i) => (
-              <tr key={i} style={{ cursor: 'pointer' }} onClick={() => handleShowPair(p)}>
-                <td style={{ border: '1px solid #ccc', padding: 4 }}>{i + 1}</td>
-                <td style={{ border: '1px solid #ccc', padding: 4 }}>{p.hit.x}, {p.hit.y}</td>
-                <td style={{ border: '1px solid #ccc', padding: 4 }}>{p.hit.time.toFixed(2)}</td>
-                <td style={{ border: '1px solid #ccc', padding: 4 }}>{p.land.x}, {p.land.y}</td>
-                <td style={{ border: '1px solid #ccc', padding: 4 }}>{p.land.time.toFixed(2)}</td>
-                <td style={{ border: '1px solid #ccc', padding: 4 }}>{speeds[i] ? speeds[i].speed : '-'}</td>
-              </tr>
-            ));
-          })()}
-
-        </tbody>
-      </table>
-      {/* 匯出CSV按鈕可用 pairs 做資料來源，這裡暫保留markers傳遞 */}
-      <ExportCSVButton markers={pairs.flatMap(p => [p.hit, p.land])} />
-    </div>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Container maxWidth="md" sx={{ py: { xs: 2, md: 5 } }}>
+        <Paper elevation={3} sx={{ p: { xs: 2, md: 4 }, borderRadius: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Typography variant="h1" component="h1" gutterBottom color="primary.main" sx={{ mb: 0 }}>
+              羽毛球球速標註工具
+            </Typography>
+            {/* 檔案選擇按鈕 */}
+            <Button
+              variant="outlined"
+              component="label"
+              color="primary"
+              sx={{ ml: 2, borderRadius: 3, fontWeight: 600, height: 40 }}
+            >
+              選擇檔案
+              <input
+                type="file"
+                accept="video/*"
+                hidden
+                onChange={e => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    setVideoUrl(URL.createObjectURL(file));
+                  }
+                }}
+              />
+            </Button>
+          </Box>
+          <Box sx={{ mb: 4 }}>
+            <VideoPlayer
+              videoUrl={videoUrl}
+              markers={markers}
+              setMarkers={handleSetMarkers}
+              onNewPair={handleNewPair}
+              showPair={showPair}
+              seekTime={seekTime}
+              onSeeked={handleSeeked}
+              onExitShowPair={() => setShowPair(null)}
+            />
+          </Box>
+          <Paper variant="outlined" sx={{ mb: 3, overflowX: 'auto' }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>#</TableCell>
+                  <TableCell>擊球(x,y)</TableCell>
+                  <TableCell>擊球時間(s)</TableCell>
+                  <TableCell>落球(x,y)</TableCell>
+                  <TableCell>落球時間(s)</TableCell>
+                  <TableCell>球速(km/h)</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {(() => {
+                  const speeds = calcSpeeds(pairs.flatMap(p => [p.hit, p.land]));
+                  return pairs.map((p, i) => (
+                    <TableRow
+                      key={i}
+                      hover
+                      sx={{ cursor: 'pointer' }}
+                      onClick={() => handleShowPair(p)}
+                    >
+                      <TableCell>{i + 1}</TableCell>
+                      <TableCell>{p.hit.x}, {p.hit.y}</TableCell>
+                      <TableCell>{p.hit.time.toFixed(2)}</TableCell>
+                      <TableCell>{p.land.x}, {p.land.y}</TableCell>
+                      <TableCell>{p.land.time.toFixed(2)}</TableCell>
+                      <TableCell>{speeds[i] ? speeds[i].speed : '-'}</TableCell>
+                    </TableRow>
+                  ));
+                })()}
+              </TableBody>
+            </Table>
+          </Paper>
+          <Box sx={{ textAlign: 'right' }}>
+            <ExportCSVButton markers={pairs.flatMap(p => [p.hit, p.land])} />
+          </Box>
+        </Paper>
+      </Container>
+    </ThemeProvider>
   );
 }
 

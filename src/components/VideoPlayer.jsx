@@ -1,5 +1,7 @@
 import React, { useRef, useState } from 'react';
 
+import { Button, Box, Paper } from '@mui/material';
+
 function PlayPauseButton({ videoRef }) {
   const [playing, setPlaying] = useState(false);
 
@@ -28,19 +30,43 @@ function PlayPauseButton({ videoRef }) {
   }, [videoRef]);
 
   return (
-    <button
-      style={{ minWidth: 60 }}
+    <Button
+      variant={playing ? 'outlined' : 'contained'}
+      color="primary"
       onClick={handleClick}
-      type="button"
+      sx={{ minWidth: 44, minHeight: 44, borderRadius: 2, p: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      title={playing ? '暫停' : '播放'}
     >
-      {playing ? '暫停' : '播放'}
-    </button>
+      <i
+        className={playing ? 'fa-solid fa-pause' : 'fa-solid fa-play'}
+        style={{ fontSize: 22, color: 'white' }}
+      ></i>
+    </Button>
   );
 }
 
-function VideoPlayer({ markers, setMarkers, onNewPair, showPair, seekTime, onSeeked, onExitShowPair }) {
+function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekTime, onSeeked, onExitShowPair }) {
   const videoRef = useRef();
-  const [videoUrl, setVideoUrl] = useState(null);
+  // 強制重繪用
+  const [rerender, setRerender] = useState(0);
+
+  // 影片縮放時強制重繪SVG與標記點
+  React.useEffect(() => {
+    if (!videoRef.current) return;
+    let resizeObserver = null;
+    if ('ResizeObserver' in window) {
+      resizeObserver = new ResizeObserver(() => setRerender(x => x + 1));
+      resizeObserver.observe(videoRef.current);
+    } else {
+      // fallback: window resize
+      const onResize = () => setRerender(x => x + 1);
+      window.addEventListener('resize', onResize);
+      return () => window.removeEventListener('resize', onResize);
+    }
+    return () => {
+      if (resizeObserver && videoRef.current) resizeObserver.disconnect();
+    };
+  }, [videoRef, videoUrl]);
   // 進度條狀態
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -59,12 +85,10 @@ function VideoPlayer({ markers, setMarkers, onNewPair, showPair, seekTime, onSee
     // eslint-disable-next-line
   }, [seekTime]);
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setVideoUrl(URL.createObjectURL(file));
-    }
-  };
+
+
+  // ... 其他程式碼
+
 
   // 影片時間監聽
   React.useEffect(() => {
@@ -159,21 +183,18 @@ function VideoPlayer({ markers, setMarkers, onNewPair, showPair, seekTime, onSee
 
   return (
     <div>
-      <input type="file" accept="video/*" onChange={handleFileChange} />
       {videoUrl && (
-        <div style={{ position: 'relative', display: 'inline-block' }}>
-          <video
-            ref={videoRef}
-            src={videoUrl}
-            width={640}
-            height={360}
-            style={{ cursor: 'crosshair', display: 'block' }}
-            onLoadedMetadata={() => {
-              if (videoRef.current) {
-                setVideoMeta({ width: videoRef.current.videoWidth, height: videoRef.current.videoHeight });
-              }
-            }}
-          />
+        <div style={{ position: 'relative', width: '100%', maxWidth: '100%' }}>
+           <video
+             ref={videoRef}
+             src={videoUrl}
+             style={{ width: '100%', height: 'auto', cursor: 'crosshair', display: 'block' }}
+             onLoadedMetadata={() => {
+               if (videoRef.current) {
+                 setVideoMeta({ width: videoRef.current.videoWidth, height: videoRef.current.videoHeight });
+               }
+             }}
+           />
           {/* 控制列容器 */}
           <div style={{
             display: 'flex',
@@ -183,15 +204,25 @@ function VideoPlayer({ markers, setMarkers, onNewPair, showPair, seekTime, onSee
             padding: '8px 16px',
             borderRadius: 12,
             marginTop: 12,
-            width: 600,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.18)'
+            width: '100%',
+            maxWidth: '100%',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+            overflow: 'hidden'
           }}>
             <PlayPauseButton videoRef={videoRef} />
             {/* 功能按鈕 */}
-            <button onClick={() => handleStep('backward1s')} title="倒退1秒" style={{padding: '4px 8px', borderRadius: 6, marginLeft: 4}}>⏪ 1秒</button>
-            <button onClick={() => handleStep('backward1f')} title="倒退1幀" style={{padding: '4px 8px', borderRadius: 6}}>◀ 1幀</button>
-            <button onClick={() => handleStep('forward1f')} title="前進1幀" style={{padding: '4px 8px', borderRadius: 6}}>1幀 ▶</button>
-            <button onClick={() => handleStep('forward1s')} title="前進1秒" style={{padding: '4px 8px', borderRadius: 6}}>1秒 ⏩</button>
+            <button onClick={() => handleStep('backward1s')} title="倒退1秒" style={{padding: '6px 10px', borderRadius: 6, marginLeft: 4, background: 'none', border: 'none', cursor: 'pointer'}}>
+              <i className="fa-solid fa-backward" style={{fontSize: 18, color: 'white'}}></i>
+            </button>
+            <button onClick={() => handleStep('backward1f')} title="倒退1幀" style={{padding: '6px 10px', borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer'}}>
+              <i className="fa-solid fa-backward-step" style={{fontSize: 18, color: 'white'}}></i>
+            </button>
+            <button onClick={() => handleStep('forward1f')} title="前進1幀" style={{padding: '6px 10px', borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer'}}>
+              <i className="fa-solid fa-forward-step" style={{fontSize: 18, color: 'white'}}></i>
+            </button>
+            <button onClick={() => handleStep('forward1s')} title="前進1秒" style={{padding: '6px 10px', borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer'}}>
+              <i className="fa-solid fa-forward" style={{fontSize: 18, color: 'white'}}></i>
+            </button>
             {/* 播放速度調整 */}
             <select
               value={playbackRate}
@@ -203,14 +234,11 @@ function VideoPlayer({ markers, setMarkers, onNewPair, showPair, seekTime, onSee
               style={{ marginRight: 8, padding: '4px 8px', borderRadius: 6 }}
               title="播放速度"
             >
+              <option value={0.1}>0.1</option>
               <option value={0.25}>0.25</option>
               <option value={0.5}>0.5</option>
               <option value={0.75}>0.75</option>
               <option value={1}>1</option>
-              <option value={1.25}>1.25</option>
-              <option value={1.5}>1.5</option>
-              <option value={1.75}>1.75</option>
-              <option value={2}>2</option>
             </select>
             <input
               type="range"
@@ -231,7 +259,12 @@ function VideoPlayer({ markers, setMarkers, onNewPair, showPair, seekTime, onSee
               borderRadius: 8,
               padding: '2px 10px',
               fontWeight: 500,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
+              boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+              alignSelf: 'center',
+              marginLeft: 'auto',
+              flexShrink: 0,
+              overflow: 'hidden',
+              whiteSpace: 'nowrap'
             }}>
               {formatTime(Number.isFinite(current) ? current : 0)} / {formatTime(Number.isFinite(duration) ? duration : 0)}
             </span>
@@ -243,33 +276,104 @@ function VideoPlayer({ markers, setMarkers, onNewPair, showPair, seekTime, onSee
                 position: 'absolute',
                 left: 0,
                 top: 0,
-                width: 640,
-                height: 360,
+                width: videoRef.current ? videoRef.current.clientWidth : '100%',
+                height: videoRef.current ? videoRef.current.clientHeight : 'auto',
                 cursor: 'pointer',
                 zIndex: 3,
                 background: 'rgba(0,0,0,0)',
+                pointerEvents: 'auto'
               }}
               title="點擊回到標記模式"
-              onClick={onExitShowPair}
-            />
+              onClick={handleVideoClick}
+            >
+              {/* SVG標註層 */}
+              <svg
+                width={videoRef.current ? videoRef.current.clientWidth : 0}
+                height={videoRef.current ? videoRef.current.clientHeight : 0}
+                style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none', width: '100%', height: '100%' }}
+              >
+                {(() => {
+                  if (displayMarkers.length !== 2) return null;
+                  const [hit, land] = displayMarkers;
+                  if (hit.type === 'hit' && land.type === 'land') {
+                    // 原始影片座標 -> 顯示區域座標
+                    const scaleX = videoRef.current ? videoRef.current.clientWidth / videoMeta.width : 1;
+                    const scaleY = videoRef.current ? videoRef.current.clientHeight / videoMeta.height : 1;
+                    return (
+                      <line
+                        key={0}
+                        x1={hit.x * scaleX}
+                        y1={hit.y * scaleY}
+                        x2={land.x * scaleX}
+                        y2={land.y * scaleY}
+                        stroke="#ff9800"
+                        strokeWidth={2}
+                        markerEnd="url(#arrowhead)"
+                      />
+                    );
+                  }
+                  return null;
+                })()}
+                <defs>
+                  <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
+                    <path d="M2,2 L2,6 L7,4 L2,2" fill="#ff9800" />
+                  </marker>
+                </defs>
+              </svg>
+            </div>
           ) : (
             <div
               style={{
                 position: 'absolute',
                 left: 0,
                 top: 0,
-                width: 640,
-                height: 360,
+                width: videoRef.current ? videoRef.current.clientWidth : 0,
+                height: videoRef.current ? videoRef.current.clientHeight : 0,
                 cursor: 'crosshair',
                 zIndex: 2,
               }}
               onClick={handleVideoClick}
-            />
+            >
+              {/* SVG標註層 */}
+              <svg
+                width={videoRef.current ? videoRef.current.clientWidth : 0}
+                height={videoRef.current ? videoRef.current.clientHeight : 0}
+                style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none', width: '100%', height: '100%' }}
+              >
+                {(() => {
+                  if (displayMarkers.length !== 2) return null;
+                  const [hit, land] = displayMarkers;
+                  if (hit.type === 'hit' && land.type === 'land') {
+                    // 原始影片座標 -> 顯示區域座標
+                    const scaleX = videoRef.current ? videoRef.current.clientWidth / videoMeta.width : 1;
+                    const scaleY = videoRef.current ? videoRef.current.clientHeight / videoMeta.height : 1;
+                    return (
+                      <line
+                        key={0}
+                        x1={hit.x * scaleX}
+                        y1={hit.y * scaleY}
+                        x2={land.x * scaleX}
+                        y2={land.y * scaleY}
+                        stroke="#ff9800"
+                        strokeWidth={2}
+                        markerEnd="url(#arrowhead)"
+                      />
+                    );
+                  }
+                  return null;
+                })()}
+                <defs>
+                  <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
+                    <path d="M2,2 L2,6 L7,4 L2,2" fill="#ff9800" />
+                  </marker>
+                </defs>
+              </svg>
+            </div>
           )}
           {/* 連線SVG層 */}
           <svg
-            width={640}
-            height={360}
+            width={videoRef.current ? videoRef.current.clientWidth : 0}
+            height={videoRef.current ? videoRef.current.clientHeight : 0}
             style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none' }}
           >
             {(() => {
@@ -277,8 +381,8 @@ function VideoPlayer({ markers, setMarkers, onNewPair, showPair, seekTime, onSee
               const [hit, land] = displayMarkers;
               if (hit.type === 'hit' && land.type === 'land') {
                 // 原始影片座標 -> 顯示區域座標
-                const scaleX = 640 / videoMeta.width;
-                const scaleY = 360 / videoMeta.height;
+                const scaleX = videoRef.current ? videoRef.current.clientWidth / videoMeta.width : 1;
+                const scaleY = videoRef.current ? videoRef.current.clientHeight / videoMeta.height : 1;
                 return (
                   <line
                     key={0}
@@ -302,9 +406,9 @@ function VideoPlayer({ markers, setMarkers, onNewPair, showPair, seekTime, onSee
           </svg>
           {/* 標記點顯示 */}
           {displayMarkers.map((m, idx) => {
-            // 原始影片座標 -> 顯示區域座標
-            const scaleX = 640 / videoMeta.width;
-            const scaleY = 360 / videoMeta.height;
+            // 原始影片座標 -> 顯示區域座標（與svg一致）
+            const scaleX = videoRef.current ? videoRef.current.clientWidth / videoMeta.width : 1;
+            const scaleY = videoRef.current ? videoRef.current.clientHeight / videoMeta.height : 1;
             return (
               <div
                 key={idx}

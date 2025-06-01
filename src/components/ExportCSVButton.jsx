@@ -1,6 +1,7 @@
 import React from 'react';
 import Papa from 'papaparse';
 import { calcSpeeds } from '../utils/speedCalc';
+import { Button } from '@mui/material';
 
 function ExportCSVButton({ markers }) {
   const handleExport = () => {
@@ -27,9 +28,15 @@ function ExportCSVButton({ markers }) {
   };
 
   return (
-    <button onClick={handleExport} disabled={markers.length < 2} style={{ marginTop: 16 }}>
+    <Button
+      variant="contained"
+      color="primary"
+      onClick={handleExport}
+      disabled={markers.length < 2}
+      sx={{ mt: 2, borderRadius: 3, fontWeight: 600 }}
+    >
       匯出 CSV
-    </button>
+    </Button>
   );
 }
 
