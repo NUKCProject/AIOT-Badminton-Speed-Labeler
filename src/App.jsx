@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import VideoPlayer from './components/VideoPlayer';
+import MediaInfo from 'mediainfo.js';
 import ExportCSVButton from './components/ExportCSVButton';
 import { calcSpeeds } from './utils/speedCalc';
 import {
@@ -51,6 +52,8 @@ const theme = createTheme({
 });
 
 function App() {
+  const [shootTime, setShootTime] = useState(''); // 影片拍攝時間 yyyy-mm-dd HH:MM:SS 格式
+
   // 刪除某一筆 pair
   const handleDeletePair = (index) => {
     setPairs(pairs => pairs.filter((_, i) => i !== index));
@@ -114,12 +117,47 @@ function App() {
                 type="file"
                 accept="video/*"
                 hidden
-                onChange={e => {
-                  const file = e.target.files[0];
-                  if (file) {
-                    setVideoUrl(URL.createObjectURL(file));
-                  }
-                }}
+                onChange={async e => {
+  const file = e.target.files[0];
+  if (file) {
+    setVideoUrl(URL.createObjectURL(file));
+    // 解析影片 creation_time
+    try {
+      const mediainfo = await MediaInfo({
+        locateFile: () => '/mediainfo.wasm'
+      });
+      const getSize = () => file.size;
+      const readChunk = (chunkSize, offset) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = event => resolve(new Uint8Array(event.target.result));
+        reader.onerror = error => reject(error);
+        reader.readAsArrayBuffer(file.slice(offset, offset + chunkSize));
+      });
+      const result = await mediainfo.analyzeData(getSize, readChunk);
+      let shootTimeStr = '';
+      // 解析 creation_time
+      const creationTimeLine = result.media.track
+        .flatMap(t => Object.entries(t))
+        .find(([k, v]) => k.toLowerCase().includes('encoded_date') || k.toLowerCase().includes('creation_time'));
+      if (creationTimeLine && creationTimeLine[1]) {
+        // 標準格式如 UTC 2023-07-01 12:34:56
+        const dateStr = creationTimeLine[1]
+        console.log("dateStr: ", dateStr)
+        const d = new Date(dateStr);
+        console.log("d: ", d)
+        if (!isNaN(d.getTime())) {
+          // 產生 yyyy-mm-ddTHH:MM:SS.sss 格式（毫秒三位數）
+          const iso = d.toISOString(); // yyyy-mm-ddTHH:MM:SS.sssZ
+          shootTimeStr = iso.replace('Z', '');
+        }
+      }
+      setShootTime(shootTimeStr);
+    } catch (e) {
+      console.log("error: ", e)
+      setShootTime('');
+    }
+  }
+}}
               />
             </Button>
           </Box>
@@ -145,6 +183,7 @@ function App() {
     seekTime={seekTime}
     onSeeked={handleSeeked}
     onExitShowPair={() => setShowPair(null)}
+    onShootTime={setShootTime}
   />
           </Box>
           <Paper variant="outlined" sx={{ mb: 3, overflowX: 'auto' }}>
@@ -202,7 +241,7 @@ function App() {
             </Table>
           </Paper>
           <Box sx={{ textAlign: 'right' }}>
-            <ExportCSVButton markers={pairs.flatMap(p => [p.hit, p.land])} />
+            <ExportCSVButton markers={pairs.flatMap(p => [p.hit, p.land])} shootTime={shootTime} />
           </Box>
         </Paper>
       </Container>

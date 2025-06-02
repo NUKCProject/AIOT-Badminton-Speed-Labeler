@@ -45,7 +45,7 @@ function PlayPauseButton({ videoRef }) {
   );
 }
 
-function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekTime, onSeeked, onExitShowPair }) {
+function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekTime, onSeeked, onExitShowPair, onShootTime }) {
   const videoRef = useRef();
   // 強制重繪用
   const [rerender, setRerender] = useState(0);
@@ -100,6 +100,21 @@ function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekT
       // 取得原始影片寬高
       if (v.videoWidth && v.videoHeight) {
         setVideoMeta({ width: v.videoWidth, height: v.videoHeight });
+      }
+      // 嘗試取得影片拍攝時間（EXIF/metadata）
+      let shootTime = 0;
+      try {
+        // 只針對本地檔案，有些瀏覽器支援 videoRef.current.currentSrc
+        // 但 HTML5 video 沒有標準 API 取得 EXIF 拍攝時間，只能用 name/自訂格式
+        // 這裡示範：若檔名含有 timestamp_1681234567.mp4 會自動解析
+        const src = v.currentSrc || v.src;
+        const match = src && src.match(/timestamp_(\d{10,})/);
+        if (match) {
+          shootTime = parseInt(match[1], 10);
+        }
+      } catch (e) {}
+      if (typeof onShootTime === 'function') {
+        onShootTime(shootTime);
       }
     };
     v.addEventListener('timeupdate', update);
