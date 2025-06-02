@@ -45,7 +45,7 @@ function PlayPauseButton({ videoRef }) {
   );
 }
 
-function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekTime, onSeeked, onExitShowPair, onShootTime }) {
+function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekTime, onSeeked, onExitShowPair, onShootTime, isPaused, setIsPaused }) {
   const videoRef = useRef();
   const containerRef = useRef(); // 新增: 用於聚焦與鍵盤監聽
   // 強制重繪用
@@ -161,8 +161,18 @@ function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekT
       videoRef.current.currentTime = seekTime;
       if (onSeeked) onSeeked();
     }
-    // eslint-disable-next-line
-  }, [seekTime]);
+  }, [seekTime, onSeeked]);
+
+  // 控制影片播放/暫停
+  React.useEffect(() => {
+    if (videoRef.current) {
+      if (isPaused) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+    }
+  }, [isPaused]);
 
 
 
@@ -198,12 +208,19 @@ function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekT
     v.addEventListener('loadedmetadata', loaded);
     // 設定播放速度
     v.playbackRate = playbackRate;
+
+    // 監聽 isPaused 狀態變化來控制影片播放/暫停
+    if (isPaused) {
+      v.pause();
+    } else {
+      v.play();
+    }
     return () => {
       v.removeEventListener('timeupdate', update);
       v.removeEventListener('durationchange', loaded);
       v.removeEventListener('loadedmetadata', loaded);
     };
-  }, [videoUrl, playbackRate]);
+  }, [videoRef, isPaused, playbackRate, onShootTime]);
 
   // 拖曳進度條
   const handleSeekBar = e => {
@@ -245,27 +262,29 @@ function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekT
 
 
   // 控制列按鈕 handler
-  const handleStep = (type) => {
+  const handleStep = (action) => {
     if (!videoRef.current) return;
-    const v = videoRef.current;
-    let frameSec = 1 / 30; // 預設一幀 1/30 秒
-    // 嘗試取得影片實際幀率
-    if (v.getVideoPlaybackQuality && v.getVideoPlaybackQuality().totalVideoFrames && v.duration) {
-      const totalFrames = v.getVideoPlaybackQuality().totalVideoFrames;
-      if (totalFrames && v.duration) frameSec = v.duration / totalFrames;
-    }
-    switch (type) {
-      case 'backward1s':
-        v.currentTime = Math.max(0, v.currentTime - 1);
-        break;
+    const video = videoRef.current;
+    // 嘗試獲取影片的實際幀率，如果無法獲取則使用預設值
+    // HTML5 video 元素本身不直接提供幀率，通常需要從影片元數據中解析
+    // 這裡我們假設一個常見的幀率，或者使用一個非常小的時間步長
+    const frameRate = 30; // 假設影片幀率為 30fps，這是一個常見值
+    const frameTime = 1 / frameRate; // 每幀的時間長度
+
+    switch (action) {
       case 'backward1f':
-        v.currentTime = Math.max(0, v.currentTime - frameSec);
-        break;
-      case 'forward1s':
-        v.currentTime = Math.min(v.duration || 0, v.currentTime + 1);
+        // 確保不會跳轉到負時間
+        video.currentTime = Math.max(0, video.currentTime - frameTime);
         break;
       case 'forward1f':
-        v.currentTime = Math.min(v.duration || 0, v.currentTime + frameSec);
+        // 確保不會跳轉超過影片總長度
+        video.currentTime = Math.min(video.duration, video.currentTime + frameTime);
+        break;
+      case 'backward1s':
+        video.currentTime = Math.max(0, video.currentTime - 1);
+        break;
+      case 'forward1s':
+        video.currentTime = Math.min(video.duration, video.currentTime + 1);
         break;
       default:
         break;

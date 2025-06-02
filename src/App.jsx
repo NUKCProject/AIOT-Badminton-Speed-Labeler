@@ -66,6 +66,7 @@ function App() {
   const [pairs, setPairs] = useState([]); // 每組擊球-落球
   const [showPair, setShowPair] = useState(null); // 目前要顯示的配對（for 表格點擊）
   const [seekTime, setSeekTime] = useState(null); // 跳轉影片時間
+  const [isPaused, setIsPaused] = useState(false); // 影片是否暫停
 
   // 新增一組配對（不立即清空標記，等待下一組擊球點時再清空）
   const [pendingClear, setPendingClear] = useState(false);
@@ -80,13 +81,16 @@ function App() {
       setMarkers(nextMarkers);
       setPendingClear(false);
       setShowPair(null);
+      setIsPaused(true);
     } else if (pendingClear && nextMarkers.length > 0) {
       setMarkers([nextMarkers[nextMarkers.length - 1]]);
       setPendingClear(false);
       setShowPair(null);
+      setIsPaused(true);
     } else {
       setMarkers(nextMarkers);
       setShowPair(null);
+      setIsPaused(true);
     }
   };
 
@@ -272,16 +276,18 @@ function App() {
     )}
   </Paper>
   <VideoPlayer
-    videoUrl={videoUrl}
-    markers={markers}
-    setMarkers={handleSetMarkers}
-    onNewPair={handleNewPair}
-    showPair={showPair}
-    seekTime={seekTime}
-    onSeeked={handleSeeked}
-    onExitShowPair={() => setShowPair(null)}
-    onShootTime={setShootTime}
-  />
+            videoUrl={videoUrl}
+            markers={markers}
+            setMarkers={handleSetMarkers}
+            onNewPair={handleNewPair}
+            showPair={showPair}
+            seekTime={seekTime}
+            onSeeked={handleSeeked}
+            onExitShowPair={() => setShowPair(null)}
+            onShootTime={setShootTime}
+            isPaused={isPaused}
+            setIsPaused={setIsPaused}
+          />
           </Box>
           <Paper variant="outlined" sx={{ mb: 3, overflowX: 'auto' }}>
             <Table size="small">
