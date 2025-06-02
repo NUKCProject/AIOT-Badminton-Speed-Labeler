@@ -4,10 +4,10 @@ import { calcSpeeds } from '../utils/speedCalc';
 import { Button } from '@mui/material';
 
 // 新增 props: shootTime
-function ExportCSVButton({ markers, shootTime = 0 }) {
+function ExportCSVButton({ markers, shootTime = 0, pixelToMeter = 0.0075 }) {
   const handleExport = () => {
     // 假設每兩點為一組（擊球點-落點）
-    const speeds = calcSpeeds(markers);
+    const speeds = calcSpeeds(markers, pixelToMeter);
     // 將 yyyy-mm-dd HH:MM:SS 轉 timestamp（秒）
 const parseDateTime = str => {
   if (!str) return 0;
