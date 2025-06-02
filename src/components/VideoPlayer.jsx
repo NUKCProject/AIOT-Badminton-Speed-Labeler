@@ -47,8 +47,83 @@ function PlayPauseButton({ videoRef }) {
 
 function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekTime, onSeeked, onExitShowPair, onShootTime }) {
   const videoRef = useRef();
+  const containerRef = useRef(); // 新增: 用於聚焦與鍵盤監聽
   // 強制重繪用
   const [rerender, setRerender] = useState(0);
+
+  // --- 快捷鍵狀態 ---
+  const lastKeyTime = useRef({ left: 0, right: 0 });
+  const DOUBLE_PRESS_INTERVAL = 300; // ms
+
+  React.useEffect(() => {
+    const playbackOptions = [0.1, 0.25, 0.5, 0.75, 1];
+    const handleKeyDown = (e) => {
+      // 僅在主播放器區域有焦點時觸發
+      if (document.activeElement !== containerRef.current) return;
+      if (!videoRef.current) return;
+      // 避免輸入框誤觸
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+      const now = Date.now();
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (videoRef.current.paused) {
+          videoRef.current.play();
+        } else {
+          videoRef.current.pause();
+        }
+        return;
+      }
+      // 左鍵
+      if (e.code === 'ArrowLeft') {
+        if (now - lastKeyTime.current.left < DOUBLE_PRESS_INTERVAL) {
+          handleStep('backward1s');
+        } else {
+          handleStep('backward1f');
+        }
+        lastKeyTime.current.left = now;
+        e.preventDefault();
+        return;
+      }
+      // 右鍵
+      if (e.code === 'ArrowRight') {
+        if (now - lastKeyTime.current.right < DOUBLE_PRESS_INTERVAL) {
+          handleStep('forward1s');
+        } else {
+          handleStep('forward1f');
+        }
+        lastKeyTime.current.right = now;
+        e.preventDefault();
+        return;
+      }
+      // 播放速率快捷鍵（A: 較小，D: 較大）
+      const playbackOptions = [0.1, 0.25, 0.5, 0.75, 1];
+      if (e.key === 'a' || e.key === 'A') {
+        const idx = playbackOptions.indexOf(playbackRateRef.current);
+        if (idx > 0) {
+          const newRate = playbackOptions[idx - 1];
+          setPlaybackRate(newRate);
+          playbackRateRef.current = newRate;
+          if (videoRef.current) videoRef.current.playbackRate = newRate;
+        }
+        e.preventDefault();
+        return;
+      }
+      if (e.key === 'd' || e.key === 'D') {
+        const idx = playbackOptions.indexOf(playbackRateRef.current);
+        if (idx < playbackOptions.length - 1) {
+          const newRate = playbackOptions[idx + 1];
+          setPlaybackRate(newRate);
+          playbackRateRef.current = newRate;
+          if (videoRef.current) videoRef.current.playbackRate = newRate;
+        }
+        e.preventDefault();
+        return;
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [videoRef]);
 
   // 影片縮放時強制重繪SVG與標記點
   React.useEffect(() => {
@@ -71,6 +146,8 @@ function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekT
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const playbackRateRef = useRef(1);
+  React.useEffect(() => { playbackRateRef.current = playbackRate; }, [playbackRate]);
   // 影片原始寬高
   const [videoMeta, setVideoMeta] = useState({ width: 640, height: 360 });
   // 若 showPair 存在則優先顯示該組點與線
@@ -196,8 +273,20 @@ function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekT
     }
   };
 
+  // 讓主容器可聚焦
   return (
-    <div>
+    <div
+      ref={containerRef}
+      tabIndex={0}
+      style={{outline: 'none'}}
+      onClick={e => {
+        // 只有點擊非表單元件才自動 focus
+        const tag = e.target.tagName;
+        if (!['SELECT', 'INPUT', 'TEXTAREA', 'BUTTON', 'OPTION'].includes(tag)) {
+          containerRef.current && containerRef.current.focus();
+        }
+      }}
+    >
       {videoUrl && (
         <div style={{ position: 'relative', width: '100%', maxWidth: '100%' }}>
            <video
