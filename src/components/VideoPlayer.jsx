@@ -220,7 +220,7 @@ function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekT
       v.removeEventListener('durationchange', loaded);
       v.removeEventListener('loadedmetadata', loaded);
     };
-  }, [videoRef, isPaused, playbackRate, onShootTime]);
+  }, [videoRef.current, isPaused, playbackRate, onShootTime]);
 
   // 拖曳進度條
   const handleSeekBar = e => {
