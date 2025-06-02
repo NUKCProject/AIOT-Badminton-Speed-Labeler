@@ -221,7 +221,8 @@ function App() {
               <TableBody>
                 {(() => {
                   const speeds = calcSpeeds(pairs.flatMap(p => [p.hit, p.land]), pixelToMeter);
-                  return pairs.map((p, i) => {
+                  return pairs.slice().reverse().map((p, originalIndex) => {
+                    const i = pairs.length - 1 - originalIndex; // 計算原始索引
   const isViewing = showPair !== null && showPair === p;
   return (
     <TableRow
