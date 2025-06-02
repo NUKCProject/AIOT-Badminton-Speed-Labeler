@@ -3,6 +3,7 @@ import VideoPlayer from './components/VideoPlayer';
 import MediaInfo from 'mediainfo.js';
 import ExportCSVButton from './components/ExportCSVButton';
 import { calcSpeeds } from './utils/speedCalc';
+import Papa from 'papaparse';
 import {
   ThemeProvider,
   createTheme,
@@ -91,12 +92,68 @@ function App() {
 
   // 點擊表格時顯示該組配對並跳轉影片
   const handleShowPair = (pair) => {
-    setShowPair(pair);
+    setShowPair({
+      hit: { ...pair.hit, type: 'hit' },
+      land: { ...pair.land, type: 'land' },
+      speed: pair.speed
+    });
     setSeekTime(pair.hit.time);
   };
 
   // 顯示配對後再重置 seekTime，避免重複跳轉
   const handleSeeked = () => setSeekTime(null);
+
+  const handleImportCSV = async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      Papa.parse(file, {
+        header: true,
+        dynamicTyping: true,
+        complete: (results) => {
+          const importedMarkers = [];
+          const importedPairs = [];
+          results.data.forEach(row => {
+            if (row.hit_x && row.hit_y && row.hit_time && row.land_x && row.land_y && row.land_time) {
+              importedMarkers.push({
+                x: row.hit_x,
+                y: row.hit_y,
+                time: row.hit_time,
+                type: 'hit'
+              });
+              importedMarkers.push({
+                x: row.land_x,
+                y: row.land_y,
+                time: row.land_time,
+                type: 'land'
+              });
+              importedPairs.push({
+                hit: { x: row.hit_x, y: row.hit_y, time: row.hit_time },
+                land: { x: row.land_x, y: row.land_y, time: row.land_time },
+                speed: row.speed
+              });
+            }
+          });
+          setMarkers([]); // 載入 CSV 後清空 markers，避免與手動標記混淆
+          setPairs(importedPairs);
+          setShowPair(null); // 載入 CSV 後重置 showPair，確保進入標記模式
+          // 嘗試從第一筆資料的 hit_timestamp 解析 shootTime
+          if (results.data.length > 0 && results.data[0].hit_timestamp) {
+            const firstHitTimestamp = results.data[0].hit_timestamp;
+            // hit_timestamp 格式為 yyyy-mm-ddTHH:MM:SS.sss
+            // 我們需要從中減去 hit_time (秒) 來得到 shootTime
+            const hitTimeInSeconds = results.data[0].hit_time;
+            const date = new Date(firstHitTimestamp);
+            date.setSeconds(date.getSeconds() - hitTimeInSeconds);
+            setShootTime(date.toISOString().replace('Z', ''));
+          }
+        },
+        error: (error) => {
+          console.error("Error parsing CSV:", error);
+          alert("載入 CSV 失敗，請檢查檔案格式。");
+        }
+      });
+    }
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -125,14 +182,16 @@ function App() {
     1像素=?公尺
   </Typography>
 </Box>
+<div className='import-btns'>
             {/* 檔案選擇按鈕 */}
             <Button
               variant="outlined"
               component="label"
               color="primary"
-              sx={{ ml: 2, borderRadius: 3, fontWeight: 600, height: 40 }}
+              title='載入影片'
+              sx={{ ml: 2, borderRadius: 3, fontWeight: 600, height: 40, minWidth: 40, p: 0 }}
             >
-              選擇影片 
+              <i className="fa-solid fa-video" style={{ fontSize: 20 }}></i>
               <input
                 type="file"
                 accept="video/*"
@@ -180,13 +239,31 @@ function App() {
 }}
               />
             </Button>
+            <Button
+              variant="outlined"
+              component="label"
+              color="secondary"
+              title='載入標記資料'
+              sx={{ ml: 2, borderRadius: 3, fontWeight: 600, height: 40, minWidth: 40, p: 0 }}
+            >
+              <i className="fa-solid fa-file-arrow-up" style={{ fontSize: 20 }}></i>
+              <input
+                type="file"
+                accept=".csv"
+                hidden
+                onChange={handleImportCSV}
+              />
+            </Button>
+            </div>
           </Box>
+
           <Box sx={{ mb: 2 }}>
+
   {/* 狀態顯示區塊 */}
   <Paper elevation={1} sx={{ mb: 2, p: 1.5, display: 'inline-block', borderRadius: 3 }}>
     {showPair !== null ? (
       <Typography variant="subtitle1" color="secondary">
-        檢視模式（第 {pairs.findIndex(p => p === showPair) + 1} 筆紀錄）
+        檢視模式（第 {pairs.findIndex(p => p.hit.x === showPair.hit.x && p.hit.y === showPair.hit.y && p.hit.time === showPair.hit.time && p.land.x === showPair.land.x && p.land.y === showPair.land.y && p.land.time === showPair.land.time) + 1} 筆紀錄）
       </Typography>
     ) : (
       <Typography variant="subtitle1" color="primary">
@@ -223,7 +300,7 @@ function App() {
                   const speeds = calcSpeeds(pairs.flatMap(p => [p.hit, p.land]), pixelToMeter);
                   return pairs.slice().reverse().map((p, originalIndex) => {
                     const i = pairs.length - 1 - originalIndex; // 計算原始索引
-  const isViewing = showPair !== null && showPair === p;
+  const isViewing = showPair !== null && showPair && showPair.hit.x === p.hit.x && showPair.hit.y === p.hit.y && showPair.hit.time === p.hit.time && showPair.land.x === p.land.x && showPair.land.y === p.land.y && showPair.land.time === p.land.time;
   return (
     <TableRow
       key={i}
