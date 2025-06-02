@@ -51,6 +51,9 @@ function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekT
   // 強制重繪用
   const [rerender, setRerender] = useState(0);
 
+  // 顯示游標座標
+  const [mousePos, setMousePos] = useState(null);
+
   // --- 快捷鍵狀態 ---
   const lastKeyTime = useRef({ left: 0, right: 0 });
   const DOUBLE_PRESS_INTERVAL = 300; // ms
@@ -162,9 +165,6 @@ function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekT
     // eslint-disable-next-line
   }, [seekTime]);
 
-
-
-  // ... 其他程式碼
 
 
   // 影片時間監聽
@@ -289,6 +289,25 @@ function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekT
     >
       {videoUrl && (
         <div style={{ position: 'relative', width: '100%', maxWidth: '100%' }}>
+          {/* 標記模式下顯示游標座標 */}
+          {/* {showPair === null && mousePos && ( */}
+          {mousePos && (
+            <div style={{
+              position: 'absolute',
+              left: 12,
+              top: 12,
+              background: 'rgba(30,30,30,0.7)',
+              color: '#fff',
+              padding: '2px 8px',
+              borderRadius: 6,
+              fontSize: 14,
+              zIndex: 10,
+              pointerEvents: 'none',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.18)'
+            }}>
+              游標座標: ({mousePos.x}, {mousePos.y})
+            </div>
+          )}
            <video
              ref={videoRef}
              src={videoUrl}
@@ -298,6 +317,25 @@ function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekT
                  setVideoMeta({ width: videoRef.current.videoWidth, height: videoRef.current.videoHeight });
                }
              }}
+             onMouseMove={e => {
+               if (!videoRef.current) return setMousePos(null);
+               const rect = videoRef.current.getBoundingClientRect();
+               const x_disp = e.clientX - rect.left;
+               const y_disp = e.clientY - rect.top;
+               // 依顯示區域與原始影片比例換算成原始影片座標
+               const x = Math.round(x_disp * (videoMeta.width / rect.width));
+               const y = Math.round(y_disp * (videoMeta.height / rect.height));
+               if (
+                 x >= 0 && x <= videoMeta.width &&
+                 y >= 0 && y <= videoMeta.height
+               ) {
+                 setMousePos({ x, y });
+               } else {
+                 setMousePos(null);
+               }
+             }}
+             onMouseLeave={() => setMousePos(null)}
+             onClick={handleVideoClick} // 新增這裡
            />
           {/* 控制列容器 */}
           <div style={{
@@ -385,10 +423,10 @@ function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekT
                 cursor: 'pointer',
                 zIndex: 3,
                 background: 'rgba(0,0,0,0)',
-                pointerEvents: 'auto'
+                pointerEvents: 'none' // 修改這裡
               }}
               title="點擊回到標記模式"
-              onClick={handleVideoClick}
+              // onClick={handleVideoClick} // 移除這裡
             >
               {/* SVG標註層 */}
               <svg
@@ -435,8 +473,9 @@ function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekT
                 height: videoRef.current ? videoRef.current.clientHeight : 0,
                 cursor: 'crosshair',
                 zIndex: 2,
+                pointerEvents: 'none' // 修改這裡
               }}
-              onClick={handleVideoClick}
+              // onClick={handleVideoClick} // 移除這裡
             >
               {/* SVG標註層 */}
               <svg
