@@ -13,10 +13,7 @@ export function calcSpeeds(markers, pixelToMeter = DEFAULT_PIXEL_TO_METER) {
     const hit = markers[i];
     const land = markers[i + 1];
     const distance = calcDistance(hit.x, hit.y, land.x, land.y) * pixelToMeter;
-    console.log("calcDistance: ", calcDistance(hit.x, hit.y, land.x, land.y))
-    console.log("distance: ", distance)
     const timeDiff = Math.abs(land.time - hit.time);
-    console.log("timeDiff: ", timeDiff)
     // 單位轉換：m/s -> km/h
     const speed = timeDiff > 0 ? (distance / timeDiff * 3.6).toFixed(2) : 0;
     results.push({ hit, land, speed });
