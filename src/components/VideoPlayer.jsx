@@ -58,8 +58,8 @@ function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekT
   const lastKeyTime = useRef({ left: 0, right: 0 });
   const DOUBLE_PRESS_INTERVAL = 300; // ms
 
+  const playbackOptions = [0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
   React.useEffect(() => {
-    const playbackOptions = [0.1, 0.25, 0.5, 0.75, 1];
     const handleKeyDown = (e) => {
       // 僅在主播放器區域有焦點時觸發
       if (document.activeElement !== containerRef.current) return;
@@ -100,7 +100,6 @@ function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekT
         return;
       }
       // 播放速率快捷鍵（A: 較小，D: 較大）
-      const playbackOptions = [0.1, 0.25, 0.5, 0.75, 1];
       if (e.key === 'a' || e.key === 'A') {
         const idx = playbackOptions.indexOf(playbackRateRef.current);
         if (idx > 0) {
@@ -376,11 +375,9 @@ function VideoPlayer({ videoUrl, markers, setMarkers, onNewPair, showPair, seekT
               style={{ marginRight: 8, padding: '4px 8px', borderRadius: 6 }}
               title="播放速度"
             >
-              <option value={0.1}>0.1</option>
-              <option value={0.25}>0.25</option>
-              <option value={0.5}>0.5</option>
-              <option value={0.75}>0.75</option>
-              <option value={1}>1</option>
+              {playbackOptions.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
             </select>
             <input
               type="range"
