@@ -112,7 +112,7 @@ function App() {
               color="primary"
               sx={{ ml: 2, borderRadius: 3, fontWeight: 600, height: 40 }}
             >
-              選擇檔案
+              選擇影片 
               <input
                 type="file"
                 accept="video/*"
@@ -231,7 +231,7 @@ function App() {
               handleDeletePair(i);
             }
           }}
-        >刪除</Button>
+        ><i className="fa-solid fa-trash"></i></Button>
       </TableCell>
     </TableRow>
   );
