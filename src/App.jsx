@@ -160,28 +160,48 @@ function App() {
     }
 
     // 標記模式
+    if (pendingClear && nextMarkers.length === 1 && nextMarkers[0].type === 'land') {
+      // 只剩落球點，保留落球點，等待下一次補擊球點
+      setMarkers([nextMarkers[0]]);
+      setPendingClear(false);
+      setShowPair(null);
+      setIsPaused(true);
+      return;
+    }
     if (pendingClear && nextMarkers.length === 1 && nextMarkers[0].type === 'hit') {
       setMarkers(nextMarkers);
       setPendingClear(false);
       setShowPair(null);
       setIsPaused(true);
-    } else if (pendingClear && nextMarkers.length > 0) {
+      return;
+    }
+    if (pendingClear && nextMarkers.length > 0) {
       setMarkers([nextMarkers[nextMarkers.length - 1]]);
       setPendingClear(false);
       setShowPair(null);
       setIsPaused(true);
-    } else {
-      setMarkers(nextMarkers);
+      return;
+    }
+    // 下一次標記時，若只剩一個落球點，強制補成擊球點
+    if (markers.length === 1 && markers[0].type === 'land' && nextMarkers.length === 2) {
+      const hit = { ...nextMarkers[1], type: 'hit' };
+      const land = { ...nextMarkers[0], type: 'land' };
+      setMarkers([hit, land]);
       setShowPair(null);
       setIsPaused(true);
+      return;
     }
+    setMarkers(nextMarkers);
+    setShowPair(null);
+    setIsPaused(true);
   };
   // 點擊表格時顯示該組配對並跳轉影片
-  const handleShowPair = (pair, index) => {
+  const handleShowPair = (pair, tableIndex) => {
     setShowPair({
       hit: { ...pair.hit, type: 'hit' },
       land: { ...pair.land, type: 'land' },
-      speed: pair.speed
+      speed: pair.speed,
+      tableIndex // 新增: 記錄在 table 中的 index
     });
     setSeekTime(pair.hit.time);
     setMode('view');
@@ -354,7 +374,7 @@ function App() {
       )}
       {mode === 'view' && showPair && (
         <Typography variant="subtitle1" color="secondary">
-          檢視模式（第 {pairs.findIndex(p => p.hit.x === showPair.hit.x && p.hit.y === showPair.hit.y && p.hit.time === showPair.hit.time) + 1} 筆紀錄）
+          檢視模式（第 {showPair.tableIndex + 1} 筆紀錄）
         </Typography>
       )}
       {mode === 'edit' && (
@@ -366,11 +386,7 @@ function App() {
         <Button
           variant="contained"
           color="primary"
-          onClick={() => handleEditMode(pairs.findIndex(p => 
-            p.hit.x === showPair.hit.x && 
-            p.hit.y === showPair.hit.y && 
-            p.hit.time === showPair.hit.time
-          ))}
+          onClick={() => handleEditMode(showPair.tableIndex)} // 用 tableIndex
           sx={{ borderRadius: 3 }}
         >
           編輯標記
@@ -446,7 +462,7 @@ const validMarkers = tablePairs.flatMap(p => [p.hit, p.land].filter(pt => pt));
 const speeds = calcSpeeds(validMarkers, pixelToMeter);
                   return tablePairs.slice().reverse().map((p, originalIndex) => {
                     const i = tablePairs.length - 1 - originalIndex; // 計算原始索引
-                    const isViewing = showPair !== null && showPair && p.hit && p.land && showPair.hit.x === p.hit.x && showPair.hit.y === p.hit.y && showPair.hit.time === p.hit.time && showPair.land.x === p.land.x && showPair.land.y === p.land.y && showPair.land.time === p.land.time;
+                    const isViewing = showPair && showPair.tableIndex === i;
                     // 單筆計算球速，避免 speeds 錯位
                     const speed = (p.hit && p.land)
     ? calcSpeeds([p.hit, p.land], pixelToMeter)[0]?.speed
@@ -459,7 +475,7 @@ const speeds = calcSpeeds(validMarkers, pixelToMeter);
                           cursor: 'pointer',
                           backgroundColor: '#ede7f6', // 淡紫色
                         } : { cursor: 'pointer' }}
-                        onClick={() => handleShowPair(p)}
+                        onClick={() => handleShowPair(p, i)} // 傳遞 i 作為 tableIndex
                       >
                         <TableCell>{i + 1}</TableCell>
                         <TableCell>{p.hit ? `${p.hit.x}, ${p.hit.y}` : '-'}</TableCell>
