@@ -3,10 +3,11 @@ import React from 'react';
 function VideoMarkers({ 
   videoRef,
   displayMarkers, 
-  showPair, 
   videoMeta,
   markers,
-  setMarkers 
+  handleSetMarkers,
+  mode,
+  editingPairIndex // 新增 prop
 }) {
   if (!videoRef.current) return null;
 
@@ -59,19 +60,24 @@ function VideoMarkers({
             height: 12,
             borderRadius: '50%',
             background: m.type === 'hit' ? 'red' : 'blue',
-            border: '2px solid #fff',
-            cursor: showPair ? 'default' : 'pointer',
+            border: '2px solid #fff',            cursor: mode === 'view' ? 'default' : 'pointer',
             zIndex: 5,
             boxShadow: '0 0 6px rgba(0,0,0,0.3)',
             transition: 'transform 0.1s',
           }}
-          title={showPair ? undefined : `點擊刪除 ${m.type} @ ${m.time.toFixed(2)}s`}
-          onClick={showPair ? undefined : (e => {
+          title={mode === 'view' ? undefined : `點擊刪除 ${m.type} @ ${m.time.toFixed(2)}s`}
+          onClick={mode === 'view' ? undefined : (e => {
             e.stopPropagation();
-            setMarkers(markers.filter((_, i) => i !== idx));
+            // 將目前點擊的標記設為新的 markers 陣列
+            const newMarkers = markers.filter((_, i) => i !== idx);
+            if (mode === 'edit') {
+              handleSetMarkers(newMarkers, editingPairIndex); // 傳入索引
+            } else {
+              handleSetMarkers(newMarkers);
+            }
           })}
-          onMouseOver={e => !showPair && (e.currentTarget.style.transform = 'scale(1.2)')}
-          onMouseOut={e => !showPair && (e.currentTarget.style.transform = 'scale(1)')}
+          onMouseOver={e => mode !== 'view' && (e.currentTarget.style.transform = 'scale(1.2)')}
+          onMouseOut={e => mode !== 'view' && (e.currentTarget.style.transform = 'scale(1)')}
         />
       ))}
     </>

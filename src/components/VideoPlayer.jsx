@@ -5,10 +5,9 @@ import VideoOverlay from './video/VideoOverlay';
 
 const playbackOptions = [0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
-function VideoPlayer({ 
-  videoUrl, 
+function VideoPlayer({   videoUrl, 
   markers, 
-  setMarkers, 
+  handleSetMarkers, 
   onNewPair, 
   showPair, 
   seekTime, 
@@ -16,7 +15,9 @@ function VideoPlayer({
   onExitShowPair, 
   onShootTime, 
   isPaused, 
-  setIsPaused 
+  setIsPaused,
+  mode, // 新增 mode prop
+  editingPairIndex // 新增 editingPairIndex prop
 }) {
   const videoRef = useRef();
   const containerRef = useRef();
@@ -30,8 +31,8 @@ function VideoPlayer({
   const lastKeyTime = useRef({ left: 0, right: 0 });
   const DOUBLE_PRESS_INTERVAL = 300;
 
-  // 若 showPair 存在則優先顯示該組點與線
-  const displayMarkers = showPair ? [showPair.hit, showPair.land] : markers;
+  // 修正：只有 view 模式才用 showPair，其餘都用 markers
+  const displayMarkers = (mode === 'view' && showPair) ? [showPair.hit, showPair.land] : markers;
 
   // 跳轉影片到指定時間
   React.useEffect(() => {
@@ -188,8 +189,8 @@ function VideoPlayer({
       ...markers,
       { x, y, time: currentTime, type: nextType }
     ];
-    setMarkers(newMarkers);
-    if (nextType === 'land' && onNewPair) {
+    handleSetMarkers(newMarkers);
+    if (nextType === 'land' && onNewPair && mode === 'mark') {
       const hit = newMarkers[newMarkers.length - 2];
       const land = newMarkers[newMarkers.length - 1];
       onNewPair({ hit, land });
@@ -281,16 +282,15 @@ function VideoPlayer({
             showPair={showPair}
             videoMeta={videoMeta}
             displayMarkers={displayMarkers}
-          />
-
-          <VideoMarkers 
+          />          <VideoMarkers 
             videoRef={videoRef}
             displayMarkers={displayMarkers}
-            showPair={showPair}
             videoMeta={videoMeta}
             markers={markers}
-            setMarkers={setMarkers}
-          />          <VideoControls
+            handleSetMarkers={handleSetMarkers}
+            mode={mode}
+            editingPairIndex={typeof editingPairIndex === 'number' ? editingPairIndex : null}
+          /><VideoControls
             videoRef={videoRef}
             current={current}
             duration={duration}
