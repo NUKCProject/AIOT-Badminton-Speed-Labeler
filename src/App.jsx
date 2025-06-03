@@ -97,7 +97,7 @@ function App() {
       setMode('view');
       setEditingPairIndex(null);
       setMarkers([]);
-      setShowPair(newTempPairs[editingPairIndex]);
+      setShowPair({ ...newTempPairs[editingPairIndex], tableIndex: editingPairIndex }); // 修正: 帶上 tableIndex
     } else {
       alert('請完成擊球點和落球點的標記');
     }
