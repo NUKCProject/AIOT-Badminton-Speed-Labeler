@@ -193,14 +193,16 @@ function App() {
     setIsPaused(true);
   };
   // 點擊表格時顯示該組配對並跳轉影片
-  const handleShowPair = (pair, tableIndex) => {
+  const handleShowPair = (pair, tableIndex, isViewing=false) => {
+    setSeekTime(pair.hit.time);
+    if (isViewing) return;
+
     setShowPair({
       hit: { ...pair.hit, type: 'hit' },
       land: { ...pair.land, type: 'land' },
       speed: pair.speed,
       tableIndex // 新增: 記錄在 table 中的 index
     });
-    setSeekTime(pair.hit.time);
     setMode('view');
     setPendingClear(false);
     setMarkers([]);
