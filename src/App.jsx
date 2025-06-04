@@ -11,19 +11,12 @@ import {
   Container,
   Paper,
   Typography,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TextField,
   Box,
   Button,
-  IconButton,
-  Tooltip
 } from '@mui/material';
-
-// 刪除 MUI icon imports，改用 FontAwesome icon
+import StatusBar from './components/StatusBar';
+import PixelToMeterInput from './components/PixelToMeterInput';
+import PairsTable from './components/PairsTable';
 
 const theme = createTheme({
   palette: {
@@ -189,7 +182,7 @@ function App() {
     // 下一次標記時，若只剩一個落球點，強制補成擊球點
     if (markers.length === 1 && markers[0].type === 'land' && nextMarkers.length === 2) {
       const hit = { ...nextMarkers[1], type: 'hit' };
-      const land = { ...nextMarkers[0], type: 'land' };
+      const land = { ...markers[0], type: 'land' }; // Use existing land marker
       setMarkers([hit, land]);
       setShowPair(null);
       setIsPaused(true);
@@ -254,7 +247,6 @@ function App() {
             const firstHitTimestamp = results.data[0].hit_timestamp;
             // hit_timestamp 格式為 yyyy-mm-ddTHH:MM:SS.sss
             // 我們需要從中減去 hit_time (秒) 來得到 shootTime
-            const hitTimeInSeconds = results.data[0].hit_time;
             const date = new Date(firstHitTimestamp);
             date.setSeconds(date.getSeconds() - hitTimeInSeconds);
             setShootTime(date.toISOString().replace('Z', ''));
@@ -265,7 +257,8 @@ function App() {
           alert("載入 CSV 失敗，請檢查檔案格式。");
         }
       });
-    }  };
+    }
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -276,240 +269,120 @@ function App() {
             <Typography variant="h1" component="h1" gutterBottom color="primary.main" sx={{ mb: 0 }}>
               羽毛球球速標註工具
             </Typography>
-            {/* PIXEL_TO_METER 設定 */}
-            <Box sx={{ display: 'flex', alignItems: 'center', mr: 1, bgcolor: '#f8f6fc', p: 0.5, borderRadius: 1, boxShadow: 0, minHeight: 36 }}>
-  <Typography variant="body2" sx={{ mr: 0.5, fontWeight: 500, color: 'primary.main', fontSize: 14 }}>
-    PIXEL_TO_METER
-  </Typography>
-  <TextField
-    type="number"
-    size="small"
-    inputProps={{ step: 0.0001, min: 0, style: { padding: '4px 6px', fontSize: 14 } }}
-    value={pixelToMeter}
-    onChange={e => setPixelToMeter(Number(e.target.value))}
-    sx={{ width: 80, bgcolor: 'white', borderRadius: 1, mr: 0.5, '& .MuiInputBase-input': { py: 0.5, px: 1, fontSize: 14 } }}
-    variant="outlined"
-  />
-  <Typography variant="caption" color="text.secondary" sx={{ fontSize: 12 }}>
-    1像素=?公尺
-  </Typography>
-</Box>
-<div className='import-btns'>
-            {/* 檔案選擇按鈕 */}
-            <Button
-              variant="outlined"
-              component="label"
-              color="primary"
-              title='載入影片'
-              sx={{ ml: 2, borderRadius: 3, fontWeight: 600, height: 40, minWidth: 40, p: 0 }}
-            >
-              <i className="fa-solid fa-video" style={{ fontSize: 20 }}></i>
-              <input
-                type="file"
-                accept="video/*"
-                hidden
-                onChange={async e => {
-  const file = e.target.files[0];
-  if (file) {
-    setVideoUrl(URL.createObjectURL(file));
-    // 解析影片 creation_time
-    try {
-      const mediainfo = await MediaInfo({
-        locateFile: () => '/mediainfo.wasm'
-      });
-      const getSize = () => file.size;
-      const readChunk = (chunkSize, offset) => new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = event => resolve(new Uint8Array(event.target.result));
-        reader.onerror = error => reject(error);
-        reader.readAsArrayBuffer(file.slice(offset, offset + chunkSize));
-      });
-      const result = await mediainfo.analyzeData(getSize, readChunk);
-      let shootTimeStr = '';
-      // 解析 creation_time
-      const creationTimeLine = result.media.track
-        .flatMap(t => Object.entries(t))
-        .find(([k, v]) => k.toLowerCase().includes('encoded_date') || k.toLowerCase().includes('creation_time'));
-      if (creationTimeLine && creationTimeLine[1]) {
-        // 標準格式如 UTC 2023-07-01 12:34:56
-        const dateStr = creationTimeLine[1]
-        console.log("dateStr: ", dateStr)
-        const d = new Date(dateStr);
-        console.log("d: ", d)
-        if (!isNaN(d.getTime())) {
-          // 產生 yyyy-mm-ddTHH:MM:SS.sss 格式（毫秒三位數）
-          const iso = d.toISOString(); // yyyy-mm-ddTHH:MM:SS.sssZ
-          shootTimeStr = iso.replace('Z', '');
-        }
-      }
-      setShootTime(shootTimeStr);
-    } catch (e) {
-      console.log("error: ", e)
-      setShootTime('');
-    }
-  }
-}}
-              />
-            </Button>
-            <Button
-              variant="outlined"
-              component="label"
-              color="secondary"
-              title='載入標記資料'
-              sx={{ ml: 2, borderRadius: 3, fontWeight: 600, height: 40, minWidth: 40, p: 0 }}
-            >
-              <i className="fa-solid fa-file-arrow-up" style={{ fontSize: 20 }}></i>
-              <input
-                type="file"
-                accept=".csv"
-                hidden
-                onChange={handleImportCSV}
-              />
-            </Button>
+            <PixelToMeterInput pixelToMeter={pixelToMeter} setPixelToMeter={setPixelToMeter} />
+            <div className='import-btns'>
+              {/* 檔案選擇按鈕 */}
+              <Button
+                variant="outlined"
+                component="label"
+                color="primary"
+                title='載入影片'
+                sx={{ ml: 2, borderRadius: 3, fontWeight: 600, height: 40, minWidth: 40, p: 0 }}
+              >
+                <i className="fa-solid fa-video" style={{ fontSize: 20 }}></i>
+                <input
+                  type="file"
+                  accept="video/*"
+                  hidden
+                  onChange={async e => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setVideoUrl(URL.createObjectURL(file));
+                      // 解析影片 creation_time
+                      try {
+                        const mediainfo = await MediaInfo({
+                          locateFile: () => '/mediainfo.wasm'
+                        });
+                        const getSize = () => file.size;
+                        const readChunk = (chunkSize, offset) => new Promise((resolve, reject) => {
+                          const reader = new FileReader();
+                          reader.onload = event => resolve(new Uint8Array(event.target.result));
+                          reader.onerror = error => reject(error);
+                          reader.readAsArrayBuffer(file.slice(offset, offset + chunkSize));
+                        });
+                        const result = await mediainfo.analyzeData(getSize, readChunk);
+                        let shootTimeStr = '';
+                        // 解析 creation_time
+                        const creationTimeLine = result.media.track
+                          .flatMap(t => Object.entries(t))
+                          .find(([k, v]) => k.toLowerCase().includes('encoded_date') || k.toLowerCase().includes('creation_time'));
+                        if (creationTimeLine && creationTimeLine[1]) {
+                          // 標準格式如 UTC 2023-07-01 12:34:56
+                          const dateStr = creationTimeLine[1]
+                          const d = new Date(dateStr);
+                          if (!isNaN(d.getTime())) {
+                            // 產生 yyyy-mm-ddTHH:MM:SS.sss 格式（毫秒三位數）
+                            const iso = d.toISOString(); // yyyy-mm-ddTHH:MM:SS.sssZ
+                            shootTimeStr = iso.replace('Z', '');
+                          }
+                        }
+                        setShootTime(shootTimeStr);
+                      } catch (e) {
+                        setShootTime('');
+                      }
+                    }
+                  }}
+                />
+              </Button>
+              <Button
+                variant="outlined"
+                component="label"
+                color="secondary"
+                title='載入標記資料'
+                sx={{ ml: 2, borderRadius: 3, fontWeight: 600, height: 40, minWidth: 40, p: 0 }}
+              >
+                <i className="fa-solid fa-file-arrow-up" style={{ fontSize: 20 }}></i>
+                <input
+                  type="file"
+                  accept=".csv"
+                  hidden
+                  onChange={handleImportCSV}
+                />
+              </Button>
             </div>
           </Box>
 
           <Box sx={{ mb: 2 }}>
-  {/* 狀態顯示區塊 */}
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-    <Paper elevation={1} sx={{ p: 1.5, display: 'inline-block', borderRadius: 3, minWidth: 120, boxShadow: 'none', border: '2px solid #e0e0e0' }}>
-      {mode === 'mark' && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <i className="fa-solid fa-circle-plus" style={{ color: '#6750A4', fontSize: 22, marginRight: 4 }}></i>
-          <Typography variant="subtitle1" color="primary">標記模式</Typography>
-        </Box>
-      )}
-      {mode === 'view' && showPair && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1,  }}>
-          <i className="fa-solid fa-eye" style={{ color: '#625B71', fontSize: 22, marginRight: 4 }}></i>
-          <Typography variant="subtitle1" color="secondary">
-            檢視（第 {showPair.tableIndex + 1} 筆）
-          </Typography>
-        </Box>
-      )}
-      {mode === 'edit' && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <i className="fa-solid fa-pen" style={{ color: '#d32f2f', fontSize: 22, marginRight: 4 }}></i>
-          <Typography variant="subtitle1" color="error">編輯模式</Typography>
-        </Box>
-      )}
-    </Paper>
-    {/* 操作按鈕區塊 */}
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      {mode === 'view' && showPair && (
-        <>
-          <Tooltip title="編輯標記">
-            <IconButton color="primary" onClick={() => handleEditMode(showPair.tableIndex)} size="large">
-              <i className="fa-solid fa-pen-to-square" style={{ fontSize: 22 }}></i>
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="返回標記模式">
-            <IconButton color="primary" onClick={() => { setMode('mark'); setShowPair(null); setMarkers([]); }} size="large">
-              <i className="fa-solid fa-arrow-rotate-left" style={{ fontSize: 22 }}></i>
-            </IconButton>
-          </Tooltip>
-        </>
-      )}
-      {mode === 'edit' && (
-        <>
-          <Tooltip title="儲存變更">
-            <IconButton color="primary" onClick={handleSaveEdit} size="large">
-              <i className="fa-solid fa-floppy-disk" style={{ fontSize: 22 }}></i>
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="取消編輯">
-            <IconButton color="error" onClick={handleCancelEdit} size="large">
-              <i className="fa-solid fa-xmark" style={{ fontSize: 22 }}></i>
-            </IconButton>
-          </Tooltip>
-        </>
-      )}
-    </Box>
-  </Box>  <VideoPlayer
-            videoUrl={videoUrl}
-            markers={markers}
-            handleSetMarkers={handleSetMarkers}
-            onNewPair={handleNewPair}
-            showPair={showPair}
-            seekTime={seekTime}
-            onSeeked={handleSeeked}
-            onExitShowPair={() => setShowPair(null)}
-            onShootTime={setShootTime}
-            isPaused={isPaused}
-            setIsPaused={setIsPaused}
-            mode={mode}
-            editingPairIndex={editingPairIndex} // 新增傳遞編輯索引
-          />
+            <StatusBar
+              mode={mode}
+              showPair={showPair}
+              handleEditMode={handleEditMode}
+              handleCancelEdit={handleCancelEdit}
+              handleSaveEdit={handleSaveEdit}
+              setMode={setMode}
+              setShowPair={setShowPair}
+              setMarkers={setMarkers}
+            />
+            <VideoPlayer
+              videoUrl={videoUrl}
+              markers={markers}
+              handleSetMarkers={handleSetMarkers}
+              onNewPair={handleNewPair}
+              showPair={showPair}
+              seekTime={seekTime}
+              onSeeked={handleSeeked}
+              onExitShowPair={() => setShowPair(null)}
+              onShootTime={setShootTime}
+              isPaused={isPaused}
+              setIsPaused={setIsPaused}
+              mode={mode}
+              editingPairIndex={editingPairIndex} // 新增傳遞編輯索引
+            />
           </Box>
-          <Paper variant="outlined" sx={{ mb: 3, overflowX: 'auto' }}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>#</TableCell>
-                  <TableCell>擊球(x,y)</TableCell>
-                  <TableCell>擊球時間(s)</TableCell>
-                  <TableCell>落球(x,y)</TableCell>
-                  <TableCell>落球時間(s)</TableCell>
-                  <TableCell>球速(km/h)</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {(() => {
-                  // 決定表格資料來源
-const tablePairs = mode === 'edit' ? tempPairs : pairs;
-// 過濾掉 null 的 hit/land 才傳給 calcSpeeds
-const validMarkers = tablePairs.flatMap(p => [p.hit, p.land].filter(pt => pt));
-const speeds = calcSpeeds(validMarkers, pixelToMeter);
-                  return tablePairs.slice().reverse().map((p, originalIndex) => {
-                    const i = tablePairs.length - 1 - originalIndex; // 計算原始索引
-                    const isViewing = showPair && showPair.tableIndex === i;
-                    // 單筆計算球速，避免 speeds 錯位
-                    const speed = (p.hit && p.land)
-    ? calcSpeeds([p.hit, p.land], pixelToMeter)[0]?.speed
-    : '-';
-                    return (
-                      <TableRow
-                        key={i}
-                        hover
-                        sx={isViewing ? {
-                          cursor: 'pointer',
-                          backgroundColor: '#ede7f6', // 淡紫色
-                        } : { cursor: 'pointer' }}
-                        onClick={() => handleShowPair(p, i)} // 傳遞 i 作為 tableIndex
-                      >
-                        <TableCell>{i + 1}</TableCell>
-                        <TableCell>{p.hit ? `${p.hit.x}, ${p.hit.y}` : '-'}</TableCell>
-                        <TableCell>{p.hit ? p.hit.time.toFixed(2) : '-'}</TableCell>
-                        <TableCell>{p.land ? `${p.land.x}, ${p.land.y}` : '-'}</TableCell>
-                        <TableCell>{p.land ? p.land.time.toFixed(2) : '-'}</TableCell>
-                        <TableCell>{speed}</TableCell>
-                        <TableCell>
-                          <Button
-                            variant="outlined"
-                            color="error"
-                            size="small"
-                            sx={{ minWidth: 32, p: 0.5 }}
-                            onClick={e => {
-                              e.stopPropagation();
-                              if (window.confirm('確定要刪除此筆紀錄嗎？')) {
-                                if (mode === 'edit') {
-                                  setTempPairs(tempPairs => tempPairs.filter((_, idx) => idx !== i));
-                                } else {
-                                  handleDeletePair(i);
-                                }
-                              }
-                            }}
-                          ><i className="fa-solid fa-trash"></i></Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  });
-                })()}
-              </TableBody>
-            </Table>
-          </Paper>
+          <PairsTable
+            mode={mode}
+            pairs={pairs}
+            tempPairs={tempPairs}
+            showPair={showPair}
+            handleShowPair={handleShowPair}
+            handleDeletePair={handleDeletePair}
+            setTempPairs={setTempPairs}
+            calcSpeeds={calcSpeeds}
+            pixelToMeter={pixelToMeter}
+          />
           <Box sx={{ textAlign: 'right' }}>
-            <ExportCSVButton markers={pairs.flatMap(p => [p.hit, p.land])} shootTime={shootTime} pixelToMeter={pixelToMeter} />          </Box>
+            <ExportCSVButton markers={pairs.flatMap(p => [p.hit, p.land])} shootTime={shootTime} pixelToMeter={pixelToMeter} />
+          </Box>
         </Paper>
       </Container>
     </ThemeProvider>
