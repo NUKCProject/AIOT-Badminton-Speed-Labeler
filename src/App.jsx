@@ -218,24 +218,11 @@ function App() {
         header: true,
         dynamicTyping: true,
         complete: (results) => {
-          const importedMarkers = [];
           const importedPairs = [];
           results.data.forEach(row => {
             // 檢查是否有必要的欄位
             if (row.hasOwnProperty("hit_x") && row.hasOwnProperty("hit_y") && row.hasOwnProperty("hit_time") &&
                 row.hasOwnProperty("land_x") && row.hasOwnProperty("land_y") && row.hasOwnProperty("land_time")){
-              importedMarkers.push({
-                x: row.hit_x,
-                y: row.hit_y,
-                time: row.hit_time,
-                type: 'hit'
-              });
-              importedMarkers.push({
-                x: row.land_x,
-                y: row.land_y,
-                time: row.land_time,
-                type: 'land'
-              });
               importedPairs.push({
                 hit: { x: row.hit_x, y: row.hit_y, time: row.hit_time },
                 land: { x: row.land_x, y: row.land_y, time: row.land_time },
