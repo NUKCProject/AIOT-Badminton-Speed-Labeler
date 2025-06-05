@@ -244,15 +244,6 @@ function App() {
           setMarkers([]); // 載入 CSV 後清空 markers，避免與手動標記混淆
           setPairs(importedPairs);
           setShowPair(null); // 載入 CSV 後重置 showPair，確保進入標記模式
-          // 嘗試從第一筆資料的 hit_timestamp 解析 shootTime
-          if (results.data.length > 0 && results.data[0].hit_timestamp) {
-            const firstHitTimestamp = results.data[0].hit_timestamp;
-            // hit_timestamp 格式為 yyyy-mm-ddTHH:MM:SS.sss
-            // 我們需要從中減去 hit_time (秒) 來得到 shootTime
-            const date = new Date(firstHitTimestamp);
-            date.setSeconds(date.getSeconds() - hitTimeInSeconds);
-            setShootTime(date.toISOString().replace('Z', ''));
-          }
         },
         error: (error) => {
           console.error("Error parsing CSV:", error);
@@ -313,9 +304,7 @@ function App() {
                           const dateStr = creationTimeLine[1]
                           const d = new Date(dateStr);
                           if (!isNaN(d.getTime())) {
-                            // 產生 yyyy-mm-ddTHH:MM:SS.sss 格式（毫秒三位數）
-                            const iso = d.toISOString(); // yyyy-mm-ddTHH:MM:SS.sssZ
-                            shootTimeStr = iso.replace('Z', '');
+                            shootTimeStr = d.toISOString(); // yyyy-mm-ddTHH:MM:SS.sssZ
                           }
                         }
                         setShootTime(shootTimeStr);
