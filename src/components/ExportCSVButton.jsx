@@ -21,7 +21,6 @@ const parseDateTime = str => {
 const shootTimestamp = parseDateTime(shootTime);
 const formatISODateTime = ts => {
   const d = new Date(ts * 1000);
-  // toISOString 會帶 Z 與毫秒，這裡只要 yyyy-mm-ddTHH:MM:SS.sss
   return d.toISOString()
 };
 const data = speeds.map((item, idx) => ({
