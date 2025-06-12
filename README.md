@@ -73,27 +73,30 @@
 ## 專案結構
 
 ```
-.gitignore           # 忽略檔案設定
-index.html           # 入口 HTML
-package.json         # 專案依賴與腳本
-vite.config.js       # Vite 設定
+.gitignore             # 忽略檔案設定
+index.html             # 入口 HTML
+package.json           # 專案依賴與腳本
+vite.config.js         # Vite 設定
 public/
-    mediainfo.wasm   # 影片元數據解析用 WASM
+    mediainfo.wasm     # 影片元數據解析用 WASM
 src/
-    App.jsx, App.css # 主應用程式與樣式
-    main.jsx         # React 入口
-    components/      # React 元件
+    App.jsx, App.css   # 主應用程式與樣式
+    main.jsx           # React 入口
+    index.css          # 全域樣式
+    components/        # React 元件
         ExportCSVButton.jsx   # 匯出 CSV 按鈕
+        PairsTable.jsx        # 標記與球速資料表格
+        PixelToMeterInput.jsx # PIXEL_TO_METER 輸入元件
+        StatusBar.jsx         # 狀態列（顯示模式/比例等）
         VideoPlayer.jsx       # 影片播放器主元件
         video/                # 影片相關子元件
-            PlayPauseButton.jsx
-            TimeDisplay.jsx
-            VideoControls.jsx
-            VideoMarkers.jsx
-            VideoOverlay.jsx
-    utils/           # 工具函式
-        csvExport.js # CSV 匯出邏輯
-        speedCalc.js # 球速計算邏輯
+            PlayPauseButton.jsx   # 播放/暫停按鈕
+            TimeDisplay.jsx       # 時間顯示
+            VideoControls.jsx     # 影片控制列
+            VideoMarkers.jsx      # 標記點渲染
+            VideoOverlay.jsx      # 影片上方互動層
+    utils/               # 工具函式
+        speedCalc.js     # 球速計算邏輯
 ```
 
 ## 技術細節
