@@ -11,11 +11,8 @@ function ExportCSVButton({ markers, shootTime = 0, pixelToMeter = 0.0075 }) {
     // 將 yyyy-mm-dd HH:MM:SS 轉 timestamp（秒）
 const parseDateTime = str => {
   if (!str) return 0;
-  // 解析 yyyy-mm-ddTHH:MM:SS.ssssss
-  // 只取前 19 個字元（yyyy-mm-ddTHH:MM:SS）
-  const base = str.slice(0, 19);
   // 直接 new Date 解析
-  const d = new Date(base.replace('T', ' '));
+  const d = new Date(str);
   if (!isNaN(d.getTime())) {
     return Math.floor(d.getTime() / 1000);
   }
@@ -24,8 +21,7 @@ const parseDateTime = str => {
 const shootTimestamp = parseDateTime(shootTime);
 const formatISODateTime = ts => {
   const d = new Date(ts * 1000);
-  // toISOString 會帶 Z 與毫秒，這裡只要 yyyy-mm-ddTHH:MM:SS.sss
-  return d.toISOString().replace('Z', '');
+  return d.toISOString()
 };
 const data = speeds.map((item, idx) => ({
   index: idx + 1,
